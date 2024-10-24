@@ -14,10 +14,10 @@ jobs:
     steps:
       # Checkout the repository
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: setup nodejs
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v4
         with:
           node-version: '22.9'
       - run: npm ci
@@ -26,41 +26,26 @@ jobs:
       - name: Fetch DJI SDK Release Note
         run: node get-release-date.js
 
-      # Download the previous version of the page (artifact)
-      - name: Download previous version from artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: dji-sdk-release-date
-        continue-on-error: true  # Allows the workflow to continue even if no previous artifact is found (e.g., first run)
-
       # Compare the current page with the previous one
       - name: Compare with previous version
         id: diff_check
         run: |
-          if [ -f old_release_note.html ]; then
-            diff -q release-date.txt old_release_note.html || echo "Content changed"
+          VERSION=$(cat current-version.txt)
+          if [ $VERSION != ${{vars.SDK_VERSION}} ]; then
+            echo "New version released"
+            echo "new_version=$VERSION" >> $GITHUB_OUTPUT
           else
             echo "First run or no previous version found"
           fi
 
       # Send Slack notification if changes are detected
       - name: Send Slack notification if content changed
-        if: steps.diff_check.outputs.result == 'Content changed'
+        if: steps.diff_check.outputs.new_version != ''
         uses: slackapi/slack-github-action@v1.23.0
         with:
           payload: |
             {
-              "channel": "#general",  # replace with your Slack channel
-              "text": "The DJI Mobile SDK Release Note has been updated. Check it out at https://developer.dji.com/doc/mobile-sdk-tutorial/en/"
+              "message": "${{steps.diff_check.outputs.new_version}} of DJI Mobile SDK has been released. Check it out at https://developer.dji.com/doc/mobile-sdk-tutorial/en/"
             }
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-
-      - run: mv current-release-date.txt release-date.txt
-
-      # Upload the current version as an artifact for future comparison
-      - name: Upload current page as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: dji-sdk-release-date
-          path: release-date.txt
