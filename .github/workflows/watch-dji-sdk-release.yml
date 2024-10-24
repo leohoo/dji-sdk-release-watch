@@ -16,26 +16,29 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      - name: setup nodejs
+        uses: actions/setup-node@v2
+        with:
+          node-version: '22.9'
+      - run: npm ci
+
       # Fetch the current page content
       - name: Fetch DJI SDK Release Note
-        run: curl -o current_release_note.html https://developer.dji.com/doc/mobile-sdk-tutorial/en/
+        run: node get-release-date.js
 
       # Download the previous version of the page (artifact)
       - name: Download previous version from artifacts
         uses: actions/download-artifact@v4
         with:
-          name: dji-release-note
-          path: old_release_note.html
+          name: dji-sdk-release-date
         continue-on-error: true  # Allows the workflow to continue even if no previous artifact is found (e.g., first run)
-      - name: Display structure of downloaded files
-        run: ls -R
 
       # Compare the current page with the previous one
       - name: Compare with previous version
         id: diff_check
         run: |
           if [ -f old_release_note.html ]; then
-            diff -q current_release_note.html old_release_note.html || echo "Content changed"
+            diff -q release-date.txt old_release_note.html || echo "Content changed"
           else
             echo "First run or no previous version found"
           fi
@@ -53,9 +56,11 @@ jobs:
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
+      - run: mv current-release-date.txt release-date.txt
+
       # Upload the current version as an artifact for future comparison
       - name: Upload current page as artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: dji-release-note
-          path: current_release_note.html
+          name: dji-sdk-release-date
+          path: release-date.txt
