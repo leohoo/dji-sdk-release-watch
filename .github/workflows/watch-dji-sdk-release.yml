@@ -1,0 +1,59 @@
+name: Check DJI SDK Release Note for Changes
+
+on:
+  schedule:
+    # Runs every day at 00:00 UTC (adjust the cron expression for your preferred time)
+    - cron: "0 0 * * *"
+
+  workflow_dispatch: # allows manual trigger of the workflow
+
+jobs:
+  check_dji_page:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout the repository
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Fetch the current page content
+      - name: Fetch DJI SDK Release Note
+        run: curl -o current_release_note.html https://developer.dji.com/doc/mobile-sdk-tutorial/en/
+
+      # Download the previous version of the page (artifact)
+      - name: Download previous version from artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: dji-release-note
+          path: old_release_note.html
+        continue-on-error: true  # Allows the workflow to continue even if no previous artifact is found (e.g., first run)
+
+      # Compare the current page with the previous one
+      - name: Compare with previous version
+        id: diff_check
+        run: |
+          if [ -f old_release_note.html ]; then
+            diff -q current_release_note.html old_release_note.html || echo "Content changed"
+          else
+            echo "First run or no previous version found"
+          fi
+
+      # Send Slack notification if changes are detected
+      - name: Send Slack notification if content changed
+        if: steps.diff_check.outputs.result == 'Content changed'
+        uses: slackapi/slack-github-action@v1.23.0
+        with:
+          payload: |
+            {
+              "channel": "#general",  # replace with your Slack channel
+              "text": "The DJI Mobile SDK Release Note has been updated. Check it out at https://developer.dji.com/doc/mobile-sdk-tutorial/en/"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      # Upload the current version as an artifact for future comparison
+      - name: Upload current page as artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: dji-release-note
+          path: current_release_note.html
