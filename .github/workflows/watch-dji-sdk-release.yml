@@ -22,11 +22,13 @@ jobs:
 
       # Download the previous version of the page (artifact)
       - name: Download previous version from artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: dji-release-note
           path: old_release_note.html
         continue-on-error: true  # Allows the workflow to continue even if no previous artifact is found (e.g., first run)
+      - name: Display structure of downloaded files
+        run: ls -R
 
       # Compare the current page with the previous one
       - name: Compare with previous version
