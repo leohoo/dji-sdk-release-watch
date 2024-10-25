@@ -2,8 +2,8 @@ name: Check DJI SDK Release Note for Changes
 
 on:
   schedule:
-    # Runs every day at 00:00 UTC (adjust the cron expression for your preferred time)
-    - cron: "*/5 0 * * *"
+    # Runs every day at 23:37 UTC (8:37 JST, Mon-Fri)
+    - cron: "37 23 * * 0-4"
 
   workflow_dispatch: # allows manual trigger of the workflow
 
