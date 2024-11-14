@@ -43,9 +43,10 @@ jobs:
         if: steps.diff_check.outputs.new_version != ''
         uses: slackapi/slack-github-action@v1.23.0
         with:
+          channel-id: ${{ secrets.SLACK_CHANNEL_ID }}
           payload: |
             {
               "message": "${{steps.diff_check.outputs.new_version}} of DJI Mobile SDK has been released. Check it out at https://developer.dji.com/doc/mobile-sdk-tutorial/en/"
             }
         env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
