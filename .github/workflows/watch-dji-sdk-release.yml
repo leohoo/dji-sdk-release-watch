@@ -35,7 +35,7 @@ jobs:
             echo "New version released"
             echo "new_version=$VERSION" >> $GITHUB_OUTPUT
           else
-            echo "First run or no previous version found"
+            echo "No update yet."
           fi
 
       # Send Slack notification if changes are detected
