@@ -7,9 +7,13 @@ on:
 
   workflow_dispatch: # allows manual trigger of the workflow
 
+env:
+  NODEJS_VERSION: 22.9
+
 jobs:
   check_dji_page:
     runs-on: ubuntu-latest
+    name: Check DJI SDK Release Note for Changes
 
     steps:
       # Checkout the repository
@@ -49,3 +53,44 @@ jobs:
             channel: ${{ secrets.SLACK_CHANNEL_ID }}
             text: "${{steps.diff_check.outputs.new_version}} of DJI Mobile SDK has been released. Check it out at https://developer.dji.com/doc/mobile-sdk-tutorial/en/"
 
+  check-alpha-release:
+    runs-on: ubuntu-latest
+    name: Check DJI SDK Alpha Release Note for Changes
+
+    steps:
+      # Checkout the repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: setup nodejs
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.9'
+      - run: npm ci
+
+      # Fetch the current page content
+      - name: Fetch DJI SDK Alpha Release Note
+        run: node get-alpha-release-date.js
+
+      # Compare the current page with the previous one
+      - name: Compare with previous version
+        id: diff_check
+        run: |
+          VERSION=$(cat current-alpha-version.txt)
+          if [ $VERSION != ${{vars.SDK_ALPHA_VERSION}} ]; then
+            echo "New version released"
+            echo "new_version=$VERSION" >> $GITHUB_OUTPUT
+          else
+            echo "No update yet."
+          fi
+
+      # Send Slack notification if changes are detected
+      - name: Send Slack notification if content changed
+        if: steps.diff_check.outputs.new_version != ''
+        uses: slackapi/slack-github-action@v2.0.0
+        with:
+          token: ${{ secrets.SLACK_BOT_TOKEN }}
+          method: chat.postMessage
+          payload: |
+            channel: ${{ secrets.SLACK_CHANNEL_ID }}
+            text: "${{steps.diff_check.outputs.new_version}} of DJI Mobile SDK has been released. Check it out at https://developer.dji.com/doc/mobile-sdk-tutorial/en/"
