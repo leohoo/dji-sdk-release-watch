@@ -1,4 +1,4 @@
-name: Check DJI SDK Release Note for Changes
+name: Check DJI SDK Updates
 
 on:
   schedule:
@@ -94,4 +94,6 @@ jobs:
           method: chat.postMessage
           payload: |
             channel: ${{ secrets.SLACK_CHANNEL_ID }}
-            text: '${{steps.diff_check.outputs.result}}\nCheck it out at https://github.com/dji-sdk/Mobile-SDK-Android-V5'
+            text: |
+             ${{steps.diff_check.outputs.result}}
+             Check it out at https://github.com/dji-sdk/Mobile-SDK-Android-V5

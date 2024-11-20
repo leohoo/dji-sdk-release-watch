@@ -17,16 +17,16 @@ try {
     for (const key in obj1) {
       if (obj1.hasOwnProperty(key)) {
         if (!obj2.hasOwnProperty(key)) {
-          console.log(`Key "${key}" has been removed.`);
+          console.log(`"${key}" has been removed.`);
         } else if (obj1[key] !== obj2[key]) {
-          console.log(`Key "${key}" has changed from "${obj1[key]}" to "${obj2[key]}"`);
+          console.log(`"${key}" has changed from "${obj1[key]}" to "${obj2[key]}"`);
         }
       }
     }
 
     for (const key in obj2) {
       if (obj2.hasOwnProperty(key) && !obj1.hasOwnProperty(key)) {
-        console.log(`Key "${key}" has been added.`);
+        console.log(`"${key}" has been added.`);
       }
     }
   };
