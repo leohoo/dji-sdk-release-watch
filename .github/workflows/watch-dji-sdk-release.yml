@@ -72,19 +72,23 @@ jobs:
       - name: Fetch DJI SDK repo heads
         id: fetch_repo_heads
         run: |
+          echo "json<<EOF" > $GITHUB_OUTPUT
           git ls-remote -h https://github.com/dji-sdk/Mobile-SDK-Android-V5.git | \
             awk '{print "{\""substr($2, 12)"\": \""$1"\"}"}' | \
-            jq -s 'add' > $GITHUB_OUTPUT
+            jq -s 'add' >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
       # Compare the current page with the previous one
       - name: Compare with previous state
         id: diff_check
         run: |
-          node comp-json.js "${{ vars.SDK_HEADS}}" "${{ steps.fetch_repo_heads.outputs }}" | tee $GITHUB_OUTPUT
+          echo "result<<EOF" > $GITHUB_OUTPUT
+          node comp-json.js "${{ vars.SDK_HEADS}}" "${{ steps.fetch_repo_heads.outputs.json }}" | tee $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
       # Send Slack notification if changes are detected
       - name: Send Slack notification if content changed
-        if: steps.diff_check.outputs != ''
+        if: steps.diff_check.outputs.result != ''
         uses: slackapi/slack-github-action@v2.0.0
         with:
           token: ${{ secrets.SLACK_BOT_TOKEN }}
