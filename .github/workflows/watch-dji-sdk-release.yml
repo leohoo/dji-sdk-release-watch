@@ -1,4 +1,4 @@
-name: Check DJI SDK Release Note for Changes
+name: Check DJI SDK Updates
 
 on:
   schedule:
@@ -7,9 +7,13 @@ on:
 
   workflow_dispatch: # allows manual trigger of the workflow
 
+env:
+  NODEJS_VERSION: 22.9
+
 jobs:
   check_dji_page:
     runs-on: ubuntu-latest
+    name: Check DJI SDK Release Note for Changes
 
     steps:
       # Checkout the repository
@@ -49,3 +53,47 @@ jobs:
             channel: ${{ secrets.SLACK_CHANNEL_ID }}
             text: "${{steps.diff_check.outputs.new_version}} of DJI Mobile SDK has been released. Check it out at https://developer.dji.com/doc/mobile-sdk-tutorial/en/"
 
+  check-github-repo:
+    runs-on: ubuntu-latest
+    name: Check github repo for Changes
+
+    steps:
+      # Checkout the repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: setup nodejs
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.9'
+
+      # Fetch the current page content
+      - name: Fetch DJI SDK repo heads
+        id: fetch_repo_heads
+        run: |
+          echo "json<<EOF" > $GITHUB_OUTPUT
+          git ls-remote -h https://github.com/dji-sdk/Mobile-SDK-Android-V5.git | \
+            awk '{print "{\""substr($2, 12)"\": \""$1"\"}"}' | \
+            jq -s 'add' >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      # Compare the current page with the previous one
+      - name: Compare with previous state
+        id: diff_check
+        run: |
+          echo "result<<EOF" > $GITHUB_OUTPUT
+          node comp-json.js '${{ vars.SDK_HEADS}}' '${{ steps.fetch_repo_heads.outputs.json }}' | tee -a $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      # Send Slack notification if changes are detected
+      - name: Send Slack notification if content changed
+        if: steps.diff_check.outputs.result != ''
+        uses: slackapi/slack-github-action@v2.0.0
+        with:
+          token: ${{ secrets.SLACK_BOT_TOKEN }}
+          method: chat.postMessage
+          payload: |
+            channel: ${{ secrets.SLACK_CHANNEL_ID }}
+            text: |
+             ${{steps.diff_check.outputs.result}}
+             Check it out at https://github.com/dji-sdk/Mobile-SDK-Android-V5
