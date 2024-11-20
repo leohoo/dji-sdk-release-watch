@@ -53,9 +53,9 @@ jobs:
             channel: ${{ secrets.SLACK_CHANNEL_ID }}
             text: "${{steps.diff_check.outputs.new_version}} of DJI Mobile SDK has been released. Check it out at https://developer.dji.com/doc/mobile-sdk-tutorial/en/"
 
-  check-alpha-release:
+  check-github-repo:
     runs-on: ubuntu-latest
-    name: Check DJI SDK Alpha Release Note for Changes
+    name: Check github repo for Changes
 
     steps:
       # Checkout the repository
@@ -69,28 +69,26 @@ jobs:
       - run: npm ci
 
       # Fetch the current page content
-      - name: Fetch DJI SDK Alpha Release Note
-        run: node get-alpha-release-date.js
+      - name: Fetch DJI SDK repo heads
+        id: fetch_repo_heads
+        run: |
+          git ls-remote -h https://github.com/dji-sdk/Mobile-SDK-Android-V5.git | \
+            awk '{print "{\""substr($2, 12)"\": \""$1"\"}"}' | \
+            jq -s 'add' > $GITHUB_OUTPUT
 
       # Compare the current page with the previous one
-      - name: Compare with previous version
+      - name: Compare with previous state
         id: diff_check
         run: |
-          VERSION=$(cat current-alpha-version.txt)
-          if [ $VERSION != ${{vars.SDK_ALPHA_VERSION}} ]; then
-            echo "New version released"
-            echo "new_version=$VERSION" >> $GITHUB_OUTPUT
-          else
-            echo "No update yet."
-          fi
+          node comp-json.js "${{ vars.SDK_HEADS}}" "${{ steps.fetch_repo_heads.outputs }}" | tee $GITHUB_OUTPUT
 
       # Send Slack notification if changes are detected
       - name: Send Slack notification if content changed
-        if: steps.diff_check.outputs.new_version != ''
+        if: steps.diff_check.outputs != ''
         uses: slackapi/slack-github-action@v2.0.0
         with:
           token: ${{ secrets.SLACK_BOT_TOKEN }}
           method: chat.postMessage
           payload: |
             channel: ${{ secrets.SLACK_CHANNEL_ID }}
-            text: "${{steps.diff_check.outputs.new_version}} of DJI Mobile SDK has been released. Check it out at https://developer.dji.com/doc/mobile-sdk-tutorial/en/"
+            text: "${{steps.diff_check.outputs}}\nCheck it out at https://github.com/dji-sdk/Mobile-SDK-Android-V5"
