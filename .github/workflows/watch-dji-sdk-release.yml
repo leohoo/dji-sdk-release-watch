@@ -66,7 +66,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22.9'
-      - run: npm ci
 
       # Fetch the current page content
       - name: Fetch DJI SDK repo heads
@@ -83,7 +82,7 @@ jobs:
         id: diff_check
         run: |
           echo "result<<EOF" > $GITHUB_OUTPUT
-          node comp-json.js "${{ vars.SDK_HEADS}}" "${{ steps.fetch_repo_heads.outputs.json }}" | tee $GITHUB_OUTPUT
+          node comp-json.js '${{ vars.SDK_HEADS}}' '${{ steps.fetch_repo_heads.outputs.json }}' | tee -a $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
       # Send Slack notification if changes are detected
@@ -95,4 +94,4 @@ jobs:
           method: chat.postMessage
           payload: |
             channel: ${{ secrets.SLACK_CHANNEL_ID }}
-            text: "${{steps.diff_check.outputs}}\nCheck it out at https://github.com/dji-sdk/Mobile-SDK-Android-V5"
+            text: "${{steps.diff_check.outputs.result}}\nCheck it out at https://github.com/dji-sdk/Mobile-SDK-Android-V5"
